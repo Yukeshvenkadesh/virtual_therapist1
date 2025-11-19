@@ -29,6 +29,7 @@ export default function App() {
       import.meta.env.VITE_ANALYSIS_API_URL ||
       "http://localhost:4000",
   )
+  console.log("BACKEND:", BACKEND_API)
   const AUTH_API = BACKEND_API
   const ANALYSIS_API = BACKEND_API
 
