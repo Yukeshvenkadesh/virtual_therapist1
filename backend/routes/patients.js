@@ -8,7 +8,7 @@ router.use(requireAuth)
 
 const resolveAnalysisUrl = () => {
   const raw = (process.env.ANALYSIS_SERVICE_URL || "").trim()
-  if (!raw) return "http://localhost:5001/api/analyze"
+  if (!raw) return "https://virtual-therapist-analysis.onrender.com/api/analyze"
 
   if (/\/(api\/)?analyze\/?$/i.test(raw) || /\/predict\/?$/i.test(raw)) {
     return raw

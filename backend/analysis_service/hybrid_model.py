@@ -8,9 +8,9 @@ import torch.nn as nn
 import numpy as np
 import xgboost as xgb
 from transformers import DistilBertModel, DistilBertTokenizer
-import joblib
 import os
 from typing import Dict, List, Tuple, Optional
+import joblib
 
 class DistilBERT_BiLSTM_Hybrid(nn.Module):
     """
@@ -235,6 +235,33 @@ class HybridModelInference:
             "labels": self.labels,
             "device": str(self.device)
         }
+
+
+class HybridMentalHealthModel(HybridModelInference):
+    """
+    Convenience wrapper that ensures model paths are resolved relative to this file.
+    """
+
+    def __init__(
+        self,
+        transformer_model_path: str = "model/mental_health_model.pth",
+        xgboost_model_path: str = "model/xgboost_classifier.json",
+        tokenizer_path: Optional[str] = None,
+    ):
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+
+        def resolve_path(path: str) -> str:
+            if os.path.isabs(path):
+                return path
+            return os.path.join(base_dir, path)
+
+        super().__init__(
+            model_path=resolve_path(transformer_model_path),
+            xgb_path=resolve_path(xgboost_model_path),
+            tokenizer_path=tokenizer_path if (tokenizer_path and os.path.isabs(tokenizer_path)) else (
+                os.path.join(base_dir, tokenizer_path) if tokenizer_path else None
+            ),
+        )
 
 def create_model_save_script():
     """

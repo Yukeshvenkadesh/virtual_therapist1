@@ -38,7 +38,7 @@ app.use("/api/sessions", sessionRoutes)
 
 const resolveAnalysisUrl = () => {
   const raw = (process.env.ANALYSIS_SERVICE_URL || "").trim()
-  if (!raw) return "http://localhost:5001/api/analyze"
+  if (!raw) return "https://virtual-therapist-analysis.onrender.com/api/analyze"
 
   // If the env already points to a specific endpoint (predict/analyze), use it as-is
   if (/\/(api\/)?analyze\/?$/i.test(raw) || /\/predict\/?$/i.test(raw)) {
@@ -80,7 +80,7 @@ app.post("/api/analyze", async (req, res) => {
 const PORT = process.env.PORT || 4000
 const MONGODB_URI = process.env.MONGODB_URI
 const JWT_SECRET = process.env.JWT_SECRET
-const ANALYSIS_SERVICE_URL = process.env.ANALYSIS_SERVICE_URL || "http://localhost:5002"
+const ANALYSIS_SERVICE_URL = process.env.ANALYSIS_SERVICE_URL || "https://virtual-therapist-analysis.onrender.com/api/analyze"
 
 if (!MONGODB_URI) {
   console.error("[auth_service] Missing MONGODB_URI in environment.")
