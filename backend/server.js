@@ -21,7 +21,13 @@ const app = express()
 
 app.use(
   cors({
-    origin: ["https://virtual-therapist.vercel.app"],
+    origin: [
+      "https://virtual-therapist.vercel.app",
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "http://127.0.0.1:3000",
+      "http://127.0.0.1:5173"
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
@@ -38,7 +44,7 @@ app.use("/api/sessions", sessionRoutes)
 
 const resolveAnalysisUrl = () => {
   const raw = (process.env.ANALYSIS_SERVICE_URL || "").trim()
-  if (!raw) return "https://virtual-therapist-analysis.onrender.com/api/analyze"
+  if (!raw) return "http://127.0.0.1:5001/api/analyze"
 
   // If the env already points to a specific endpoint (predict/analyze), use it as-is
   if (/\/(api\/)?analyze\/?$/i.test(raw) || /\/predict\/?$/i.test(raw)) {
@@ -80,25 +86,113 @@ app.post("/api/analyze", async (req, res) => {
 const PORT = process.env.PORT || 4000
 const MONGODB_URI = process.env.MONGODB_URI
 const JWT_SECRET = process.env.JWT_SECRET
-const ANALYSIS_SERVICE_URL = process.env.ANALYSIS_SERVICE_URL || "https://virtual-therapist-analysis.onrender.com/api/analyze"
+const ANALYSIS_SERVICE_URL = process.env.ANALYSIS_SERVICE_URL || "http://127.0.0.1:5001/api/analyze"
 
+// Validate MongoDB URI
 if (!MONGODB_URI) {
-  console.error("[auth_service] Missing MONGODB_URI in environment.")
+  console.error("[auth_service] ❌ Missing MONGODB_URI in environment.")
+  console.error("[auth_service] Please update the .env file with your MongoDB Atlas connection string.")
+  console.error("[auth_service] Example: mongodb+srv://username:password@cluster.mongodb.net/virtual_therapist?retryWrites=true&w=majority")
   process.exit(1)
 }
 
-if (!JWT_SECRET) {
-  console.error("[auth_service] Missing JWT_SECRET in environment.")
+// Check if MongoDB URI contains placeholder values
+if (MONGODB_URI.includes("<") || MONGODB_URI.includes(">") || MONGODB_URI.includes("cluster-url") || MONGODB_URI.includes("username") || MONGODB_URI.includes("password")) {
+  console.error("[auth_service] ❌ MONGODB_URI contains placeholder values.")
+  console.error("[auth_service] Please update the .env file with your actual MongoDB Atlas connection string.")
+  console.error("[auth_service] Current value:", MONGODB_URI.replace(/\/\/[^:]+:[^@]+@/, "//***:***@")) // Hide credentials in log
+  console.error("[auth_service] Get your connection string from: https://cloud.mongodb.com/")
   process.exit(1)
 }
 
-mongoose
-  .connect(MONGODB_URI, { dbName: process.env.MONGODB_DB || "virtual_therapist" })
-  .then(() => {
-    console.log("[auth_service] Connected to MongoDB")
-    app.listen(PORT, () => console.log(`[auth_service] Listening on ${PORT}`))
-  })
-  .catch((err) => {
-    console.error("[auth_service] MongoDB connection error:", err.message)
+if (!JWT_SECRET || JWT_SECRET.includes("change_in_production") || JWT_SECRET.includes("your_super_secret")) {
+  console.warn("[auth_service] ⚠️  JWT_SECRET is using default/placeholder value.")
+  console.warn("[auth_service] Please update JWT_SECRET in .env file for production use.")
+  // Don't exit, just warn - allow development with default secret
+}
+
+// Enhanced MongoDB connection with better error handling
+const connectToMongoDB = async () => {
+  try {
+    const connectionOptions = {
+      dbName: process.env.MONGODB_DB || "virtual_therapist",
+      serverSelectionTimeoutMS: 10000, // 10 seconds timeout
+      socketTimeoutMS: 45000, // 45 seconds socket timeout
+      connectTimeoutMS: 10000, // 10 seconds connection timeout
+      retryWrites: true,
+      w: "majority",
+    }
+
+    await mongoose.connect(MONGODB_URI, connectionOptions)
+    console.log("[auth_service] ✅ Connected to MongoDB successfully")
+
+    // Handle connection events
+    mongoose.connection.on("error", (err) => {
+      console.error("[auth_service] MongoDB connection error:", err.message)
+    })
+
+    mongoose.connection.on("disconnected", () => {
+      console.warn("[auth_service] ⚠️  MongoDB disconnected")
+    })
+
+    mongoose.connection.on("reconnected", () => {
+      console.log("[auth_service] ✅ MongoDB reconnected")
+    })
+
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`[auth_service] 🚀 Server listening on port ${PORT}`)
+    })
+  } catch (err) {
+    console.error("\n[auth_service] ❌ MongoDB connection failed!")
+    console.error("[auth_service] Error details:", err.message)
+
+    // Provide specific guidance based on error type
+    if (err.message.includes("querySrv") || err.message.includes("EBADNAME") || err.message.includes("ENOTFOUND")) {
+      console.error("\n[auth_service] 🔍 DNS Resolution Error Detected")
+      console.error("[auth_service] This usually means:")
+      console.error("  1. The cluster URL in your MONGODB_URI is incorrect or contains placeholders")
+      console.error("  2. The cluster doesn't exist or has been deleted")
+      console.error("  3. There's a typo in the cluster hostname")
+      console.error("\n[auth_service] 📝 Action required:")
+      console.error("  1. Go to https://cloud.mongodb.com/")
+      console.error("  2. Navigate to your cluster → Connect → Drivers")
+      console.error("  3. Copy the connection string and replace <password> with your actual password")
+      console.error("  4. Update MONGODB_URI in your .env file")
+      console.error("\n[auth_service] Example format:")
+      console.error("  mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/virtual_therapist?retryWrites=true&w=majority")
+    } else if (err.message.includes("authentication failed") || err.message.includes("bad auth")) {
+      console.error("\n[auth_service] 🔐 Authentication Error Detected")
+      console.error("[auth_service] This usually means:")
+      console.error("  1. The username or password in MONGODB_URI is incorrect")
+      console.error("  2. The database user doesn't exist or has been deleted")
+      console.error("  3. Special characters in password need to be URL-encoded")
+      console.error("\n[auth_service] 📝 Action required:")
+      console.error("  1. Verify your MongoDB Atlas username and password")
+      console.error("  2. If password contains special characters, URL-encode them (e.g., @ becomes %40)")
+      console.error("  3. Check Database Access in MongoDB Atlas to ensure the user exists")
+    } else if (err.message.includes("timeout") || err.message.includes("ETIMEDOUT")) {
+      console.error("\n[auth_service] ⏱️  Connection Timeout Error")
+      console.error("[auth_service] This usually means:")
+      console.error("  1. Your IP address is not whitelisted in MongoDB Atlas")
+      console.error("  2. Network connectivity issues")
+      console.error("  3. MongoDB Atlas cluster is paused or unavailable")
+      console.error("\n[auth_service] 📝 Action required:")
+      console.error("  1. Go to MongoDB Atlas → Network Access")
+      console.error("  2. Add your current IP address (or 0.0.0.0/0 for development)")
+      console.error("  3. Wait a few minutes for changes to propagate")
+      console.error("  4. Check if your cluster is running (not paused)")
+    } else {
+      console.error("\n[auth_service] 📝 General troubleshooting:")
+      console.error("  1. Verify MONGODB_URI in your .env file is correct")
+      console.error("  2. Check MongoDB Atlas dashboard: https://cloud.mongodb.com/")
+      console.error("  3. Ensure your cluster is running and accessible")
+      console.error("  4. Verify network access settings allow your IP")
+    }
+
+    console.error("\n[auth_service] Full error:", err)
     process.exit(1)
-  })
+  }
+}
+
+// Start the connection
+connectToMongoDB()

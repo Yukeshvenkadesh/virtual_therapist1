@@ -1,24 +1,3 @@
-{
-  "name": "virtual-therapist-frontend",
-  "private": true,
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0 --port 3000"
-  },
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.1"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.13",
-    "@vitejs/plugin-react": "^4.3.1",
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.12",
-    "vite": "^5.4.0"
-  }
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:8e533def670f46372f68b6e11555bcdbb7f75a33dbc03f4011c40d10b2ed26fd
+size 551

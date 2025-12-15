@@ -26,12 +26,15 @@ cd ..
 sleep 3
 
 # Start model service
-echo "Starting model service..."
-cd model_service
-source venv/bin/activate
-python app.py &
+echo "Starting analysis service..."
+cd backend/analysis_service
+# Check if venv exists and activate
+if [ -d "venv" ]; then
+    source venv/bin/activate
+fi
+python3 app.py &
 MODEL_PID=$!
-cd ..
+cd ../..
 
 # Wait a moment for model service to start
 sleep 3

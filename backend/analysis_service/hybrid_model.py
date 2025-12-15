@@ -56,7 +56,7 @@ class HybridModelInference:
     """
     
     def __init__(self, model_path: str, xgb_path: str, tokenizer_path: Optional[str] = None):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cpu")
         self.model_path = model_path
         self.xgb_path = xgb_path
         
@@ -103,7 +103,11 @@ class HybridModelInference:
         """Load the PyTorch model weights."""
         try:
             if os.path.exists(self.model_path):
+                print(f"[debug] Loading state dict from {self.model_path}...")
                 state_dict = torch.load(self.model_path, map_location=self.device)
+                print(f"[debug] State dict loaded. Keys: {len(state_dict)}")
+                
+                print("[debug] Loading into model...")
                 self.model.load_state_dict(state_dict)
                 print(f"✅ Loaded PyTorch model from {self.model_path}")
             else:
@@ -244,8 +248,8 @@ class HybridMentalHealthModel(HybridModelInference):
 
     def __init__(
         self,
-        transformer_model_path: str = "model/mental_health_model.pth",
-        xgboost_model_path: str = "model/xgboost_classifier.json",
+        transformer_model_path: str = "models/mental_health_model.pth",
+        xgboost_model_path: str = "models/xgboost_classifier.json",
         tokenizer_path: Optional[str] = None,
     ):
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -263,47 +267,7 @@ class HybridMentalHealthModel(HybridModelInference):
             ),
         )
 
-def create_model_save_script():
-    """
-    Create a script to help save your trained model in the correct format.
-    """
-    script_content = '''
-# Script to save your hybrid model for Virtual Therapist
-# Run this in your Colab notebook after training
 
-import torch
-import xgboost as xgb
-import os
-
-# Save PyTorch model
-pytorch_path = "backend/analysis_service/model/mental_health_model.pth"
-torch.save(model.state_dict(), pytorch_path)
-print(f"PyTorch model saved to: {pytorch_path}")
-
-# Save XGBoost model
-xgb_path = "backend/analysis_service/model/xgboost_classifier.json"
-xgb_model.save_model(xgb_path)
-print(f"XGBoost model saved to: {xgb_path}")
-
-# Create a combined model info file
-model_info = {
-    "pytorch_path": pytorch_path,
-    "xgb_path": xgb_path,
-    "labels": ["Anxiety", "Bipolar", "Depression"],
-    "model_type": "DistilBERT-BiLSTM-XGBoost Hybrid"
-}
-
-import json
-info_path = "backend/analysis_service/model/model_info.json"
-with open(info_path, 'w') as f:
-    json.dump(model_info, f, indent=2)
-print(f"Model info saved to: {info_path}")
-'''
-    
-    with open("/Users/adithyan/Desktop/RND/basepapers/virtual-therapist/backend/analysis_service/save_hybrid_model.py", "w") as f:
-        f.write(script_content)
-    
-    print("✅ Created model saving script: save_hybrid_model.py")
 
 
 
