@@ -14,7 +14,7 @@ function loadHistory() {
 function saveHistory(list) {
   try {
     localStorage.setItem("vt_history", JSON.stringify(list))
-  } catch {}
+  } catch { }
 }
 
 export default function IndividualView({ analysisApi }) {
@@ -96,6 +96,27 @@ export default function IndividualView({ analysisApi }) {
             <p className="help" style={{ color: "var(--primary)" }}>
               {error}
             </p>
+          )}
+
+          {/* New Result Display Area as requested */}
+          {result && (
+            <div style={{ marginTop: "1rem" }}>
+              <label htmlFor="ai-response" className="help">
+                Analysis Result:
+              </label>
+              <textarea
+                id="ai-response"
+                className="input"
+                readOnly
+                rows={4}
+                value={result.ai_response || `Model Prediction: ${result.topPattern}`}
+                style={{
+                  backgroundColor: "var(--background-alt)",
+                  color: "var(--text)",
+                  borderColor: result.ai_response ? "var(--primary)" : "var(--border)"
+                }}
+              />
+            </div>
           )}
         </div>
         <div style={{ marginTop: "1rem" }}>

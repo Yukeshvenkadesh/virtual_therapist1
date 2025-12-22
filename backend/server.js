@@ -10,6 +10,7 @@ import { fileURLToPath } from "url"
 import authRoutes from "./routes/auth.js"
 import patientRoutes from "./routes/patients.js"
 import sessionRoutes from "./routes/sessions.js"
+import { callGroq } from "./services/groqClient.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -76,6 +77,98 @@ app.post("/api/analyze", async (req, res) => {
     }
 
     const result = await response.json()
+
+    // ---------------------------------------------------------
+    // HYBRID ROUTING LOGIC (Node.js Gateway)
+    // ---------------------------------------------------------
+    const CONFIDENCE_HIGH = 0.85
+    const CONFIDENCE_LOW = 0.65
+
+    // 1. Extract Model Confidence
+    const topPattern = result.topPattern
+    const confidenceScores = result.confidenceScores || []
+
+    // Find score for the top pattern
+    let topScore = 0.0
+    const topMatch = confidenceScores.find(item => item.label === topPattern)
+    if (topMatch) {
+      topScore = topMatch.score
+    }
+
+    console.log(`[analyze] Prediction: ${topPattern}, Score: ${topScore.toFixed(2)}`)
+
+    // 2. Routing Decision
+
+    // Case A: High Confidence (>= 0.7) -> Model ONLY
+    if (topScore >= CONFIDENCE_HIGH) {
+      console.log("[analyze] High confidence. Returning model response ONLY.")
+      result.source = "model"
+      // No Groq call
+    }
+
+    // Case B: Mid Confidence (0.4 <= score < 0.7) -> Supportive AI
+    else if (topScore >= CONFIDENCE_LOW) {
+      console.log("[analyze] Mid confidence. Calling Groq for supportive response.")
+
+      const systemPrompt = `
+        You are a supportive, empathetic mental health assistant.
+        The user seems to be experiencing ${topPattern} (Context: Uncertain confidence ${topScore.toFixed(2)}).
+        
+        Task: Provide a brief, supportive, and non-judgmental response.
+        - Acknowledge their feelings based on the context.
+        - Do NOT diagnose.
+        - Do NOT act as a doctor.
+        - Keep it under 3 sentences.
+      `
+
+      const aiResponse = await callGroq(systemPrompt, text)
+
+      if (aiResponse) {
+        result.ai_response = aiResponse
+        result.source = "model+groq"
+
+        // Zero out scores to prevent misclassification in UI (User Request)
+        result.topPattern = "None"
+        if (result.confidenceScores) {
+          result.confidenceScores = result.confidenceScores.map(item => ({ ...item, score: 0 }))
+        }
+      } else {
+        result.source = "model_fallback" // Groq failed
+      }
+    }
+
+    // Case C: Low Confidence (< 0.4) -> General AI + Disclaimer
+    else {
+      console.log("[analyze] Low confidence. Treating as general query.")
+
+      const systemPrompt = `
+        You are a helpful general assistant.
+        The user's query does not appear to be strongly related to specific mental health conditions based on our model.
+        
+        Task: Answer the user's question normally and helpfully.
+        - If it is a general question, answer it.
+        - Do NOT try to force a mental health context.
+        - Keep it concise.
+      `
+
+      const aiResponse = await callGroq(systemPrompt, text)
+
+      if (aiResponse) {
+        // Prepend disclaimer
+        const disclaimer = "This question doesn't seem directly related to specific mental health conditions, but here is some information: "
+        result.ai_response = disclaimer + aiResponse
+        result.source = "groq"
+
+        // Zero out scores to prevent misclassification in UI
+        result.topPattern = "None"
+        if (result.confidenceScores) {
+          result.confidenceScores = result.confidenceScores.map(item => ({ ...item, score: 0 }))
+        }
+      } else {
+        result.source = "model_fallback"
+      }
+    }
+
     return res.json(result)
   } catch (err) {
     console.error("[analyze] error:", err)

@@ -36,7 +36,7 @@ cd backend && npm install && cd ..
 
 # Install model service dependencies
 echo "Installing model service dependencies..."
-cd model_service && pip install -r requirements.txt && cd ..
+cd backend/analysis_service && pip install -r requirements.txt && cd ../..
 
 # Install frontend dependencies
 echo "Installing frontend dependencies..."
@@ -57,10 +57,10 @@ sleep 3
 
 # Start model service
 echo "Starting model service..."
-cd model_service
+cd backend/analysis_service
 python app.py &
 MODEL_PID=$!
-cd ..
+cd ../..
 
 # Wait a moment for model service to start
 sleep 3

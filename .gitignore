@@ -1,20 +1,87 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-env/
-venv/
-*.env
-
-# Node
-node_modules/
-dist/
-build/
-
-# OS
+# System Files
 .DS_Store
 Thumbs.db
+.spotlight-V100
+.Trashes
+ehthumbs.db
+[Dd]esktop.ini
 
-# Logs
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.env
+.venv
+
+# Logs and Debug
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Node.js / Frontend
+node_modules/
+.next/
+out/
+.nuxt/
+dist/
+.cache/
+.parcel-cache
+config.gyp
+coverage/
+.nyc_output/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# backend/.env and frontend/.env should generally be ignored, but if you want to track them for specific reasons (e.g. dev defaults), comment them out. 
+# Standard practice is to ignore them.
+backend/.env
+frontend/.env
+
+# Models
+# Ignore generic large model files if they appear elsewhere
+*.ckpt
+*.h5
+# *.pth # Commented out to allow pth files by default, or see below
+
+# Whitelist specific models for backend/analysis_service
+# We make sure these are NOT ignored, even if a global rule existed
+!backend/analysis_service/models/*.pth
+!backend/analysis_service/models/*.json
+
+# Model Service models (if redundant, ignore, otherwise whitelist)
+# Assuming implementation plan centralized them, but strictly following prompt:
+# "Whitelist trained models in backend/analysis_service/models/*.pth and *.json"
