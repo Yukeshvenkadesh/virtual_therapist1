@@ -1,3 +1,14 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:d5a92eafd68388219816f49e00cd88d56c5d55d77ee1559728782bcc22e9ed09
-size 295
+{
+    "verbose": true,
+    "ignore": [
+        "analysis_service/venv/**",
+        "**/venv/**",
+        "**/__pycache__/**",
+        "**/lib/python*/**",
+        "**/site-packages/**",
+        "analysis_service/models/**",
+        "node_modules/**",
+        "*.log"
+    ],
+    "delay": "2500"
+}
